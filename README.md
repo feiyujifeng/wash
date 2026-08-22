@@ -19,7 +19,7 @@
 
 ## 快速开始
 
-从 [Releases](https://github.com/飞宇之峰/wash/releases) 下载 `WASH-Portable.exe`，双击解压后运行 `wash.bat`。
+从 [Releases](https://github.com/feiyujifeng/wash/releases) 下载 `WASH-Portable.exe`，双击解压后运行 `wash.bat`。
 
 或自行编译（见下方）。
 
