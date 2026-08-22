@@ -1,0 +1,16 @@
+-- ls.wash - 列出目录内容
+-- 用法: ls [path]
+
+local args = ...
+
+local path = args[1] or wash.get_cwd()
+
+local entries = wash.read_dir(path)
+
+if #entries == 0 then
+    wash.print("(empty directory)")
+else
+    for _, name in ipairs(entries) do
+        wash.print("  " .. name)
+    end
+end

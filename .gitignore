@@ -1,0 +1,23 @@
+# 编译器
+mingw/
+
+# 编译产物
+*.exe
+*.o
+*.a
+*.obj
+
+# 发行版目录（由 build.bat 生成）
+稳定/
+激进/
+
+# 安装包
+installer/WASH.7z
+installer/WASH-Portable.exe
+installer/WASH-Setup.exe
+installer/pkg/
+
+# 临时文件
+screenshot.png
+*.log
+*.tmp

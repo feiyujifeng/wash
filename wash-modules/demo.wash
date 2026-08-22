@@ -1,0 +1,59 @@
+-- demo.wash - Wash API 综合演示
+-- 用法: demo [dirname]
+
+local args = ...
+
+wash.print("=== Wash API Demo ===")
+wash.print("")
+
+-- 1. get_cwd
+wash.print("[get_cwd] 当前目录: " .. wash.get_cwd())
+
+-- 2. 参数
+wash.print("[args] 参数个数: " .. #args)
+for i, v in ipairs(args) do
+    wash.print("  args[" .. i .. "] = " .. v)
+end
+
+-- 3. read_dir
+wash.print("")
+wash.print("[read_dir] 当前目录内容:")
+local entries = wash.read_dir(wash.get_cwd())
+for i, name in ipairs(entries) do
+    wash.print("  " .. i .. ". " .. name)
+    if i >= 10 then
+        wash.print("  ... (共 " .. #entries .. " 项，仅显示前10)")
+        break
+    end
+end
+
+-- 4. make_dir + write_file + read_file
+local testdir = args[1] or "wash_demo_dir"
+wash.print("")
+wash.print("[make_dir] 创建: " .. testdir)
+local ok = wash.make_dir(testdir)
+wash.print("  结果: " .. tostring(ok))
+
+local testfile = testdir .. "\\hello.txt"
+wash.print("[write_file] 写入: " .. testfile)
+wash.write_file(testfile, "Hello from Wash!\n这是由 wash.write_file 写入的文件。\n")
+
+wash.print("[read_file] 读取: " .. testfile)
+local content = wash.read_file(testfile)
+if content then
+    wash.print("  内容:\n" .. content)
+else
+    wash.print("  读取失败")
+end
+
+-- 5. remove_file
+wash.print("[remove_file] 删除: " .. testfile)
+wash.print("  结果: " .. tostring(wash.remove_file(testfile)))
+
+-- 6. spawn_exe
+wash.print("")
+wash.print("[spawn_exe] 调用系统 where.exe:")
+wash.spawn_exe("where", {"cmd"})
+
+wash.print("")
+wash.print("=== Demo 结束 ===")

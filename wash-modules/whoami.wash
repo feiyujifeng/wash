@@ -1,0 +1,5 @@
+-- whoami.wash - 显示当前用户名
+-- 用法: whoami
+
+local username = os.getenv("USERNAME") or "unknown"
+wash.print(username)

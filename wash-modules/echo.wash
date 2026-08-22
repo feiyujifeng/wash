@@ -1,0 +1,7 @@
+-- echo.wash - 打印参数
+-- 用法: echo <text...>
+
+local args = ...
+
+local result = table.concat(args, " ")
+wash.print(result)

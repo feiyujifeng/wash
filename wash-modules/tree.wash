@@ -1,0 +1,61 @@
+-- tree.wash - 递归显示目录树
+-- 用法: tree [path] [depth]
+
+local args = ...
+
+local target = args[1] or wash.get_cwd()
+local max_depth = tonumber(args[2]) or 3
+
+local dir_count = 0
+local file_count = 0
+
+local function is_dir(path)
+    -- 先尝试当文件读：能读出内容(含空串)就是文件
+    local content = wash.read_file(path)
+    if content ~= nil then return false end
+    -- 读不出来再尝试列目录：有返回就是目录
+    local entries = wash.read_dir(path)
+    return entries ~= nil
+end
+
+local function print_tree(path, prefix, depth)
+    if depth > max_depth then return end
+
+    local entries = wash.read_dir(path)
+    if not entries then return end
+
+    -- 排序：目录在前，文件在后
+    local dirs = {}
+    local files = {}
+    for _, name in ipairs(entries) do
+        local full = path .. "\\" .. name
+        if is_dir(full) then
+            table.insert(dirs, name)
+        else
+            table.insert(files, name)
+        end
+    end
+
+    local all = {}
+    for _, n in ipairs(dirs) do table.insert(all, {name = n, is_dir = true}) end
+    for _, n in ipairs(files) do table.insert(all, {name = n, is_dir = false}) end
+
+    for i, item in ipairs(all) do
+        local is_last = (i == #all)
+        local connector = is_last and "`-- " or "|-- "
+        wash.print(prefix .. connector .. item.name)
+
+        if item.is_dir then
+            dir_count = dir_count + 1
+            local extension = is_last and "    " or "|   "
+            print_tree(path .. "\\" .. item.name, prefix .. extension, depth + 1)
+        else
+            file_count = file_count + 1
+        end
+    end
+end
+
+wash.print(target)
+print_tree(target, "", 1)
+wash.print("")
+wash.print(dir_count .. " directories, " .. file_count .. " files")

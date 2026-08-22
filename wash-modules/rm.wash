@@ -1,0 +1,16 @@
+-- rm.wash - 删除文件
+-- 用法: rm <filename>
+
+local args = ...
+
+if not args[1] then
+    wash.print("usage: rm <filename>")
+    return
+end
+
+local ok = wash.remove_file(args[1])
+if ok then
+    wash.print("removed: " .. args[1])
+else
+    wash.print("rm: failed to remove: " .. args[1])
+end

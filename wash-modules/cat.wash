@@ -1,0 +1,16 @@
+-- cat.wash - 读取并打印文件内容
+-- 用法: cat <filename>
+
+local args = ...
+
+if not args[1] then
+    wash.print("usage: cat <filename>")
+    return
+end
+
+local content, err = wash.read_file(args[1])
+if content then
+    wash.print(content)
+else
+    wash.print("cat: " .. tostring(err))
+end

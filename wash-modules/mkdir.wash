@@ -1,0 +1,16 @@
+-- mkdir.wash - 创建文件夹
+-- 用法: mkdir <dirname>
+
+local args = ...
+
+if not args[1] then
+    wash.print("usage: mkdir <dirname>")
+    return
+end
+
+local ok = wash.make_dir(args[1])
+if ok then
+    wash.print("created: " .. args[1])
+else
+    wash.print("mkdir: failed to create: " .. args[1])
+end
