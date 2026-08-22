@@ -12,11 +12,18 @@
 
 ## 架构
 
-- **C 内核** (`src/`)：维护会话状态（CWD、环境变量）、命令解析、Lua 虚拟机管理、内置命令
-- **Lua 插件** (`wash-modules/*.wash`)：纯文本 Lua 脚本，放入目录即可加载，无需编译
-- **API 收口**：插件只能调用 `wash.*` 系列标准化 C 接口，原生 `os.execute`、`io` 库等已被屏蔽
+- **C 内核** (`src/`)：维护会话状态（CWD）、命令解析、Lua 虚拟机管理、内置命令
+- **Lua 插件** (`wash-modules/*.wash`)：纯文本 Lua 脚本，放入目录即可加载，无需编译、无需重启
+- **API 收口**：受限模式下插件只能调用 `wash.*` 系列标准化 C 接口，原生 `os.execute`、`io` 库等被屏蔽
+- **双模式**：默认受限模式，输入 `unrestrict` 切换不受限（恢复全部 Lua 原生接口），`restrict` 切回
 
-## 内置命令（不可插件化）
+## 快速开始
+
+从 [Releases](https://github.com/飞宇之峰/wash/releases) 下载 `WASH-Portable.exe`，双击解压后运行 `wash.bat`。
+
+或自行编译（见下方）。
+
+## 内置命令
 
 | 命令 | 说明 |
 |------|------|
@@ -26,6 +33,14 @@
 | `clear` | 清屏 |
 | `help` | 显示帮助 |
 | `modules` | 列出可用插件 |
+| `unrestrict` | 切换为不受限模式 |
+| `restrict` | 切回受限模式 |
+
+## 内置插件（8个）
+
+`ls` `cat` `rm` `mkdir` `echo` `whoami` `tree` `demo`
+
+输入 `modules` 查看完整列表。
 
 ## 插件 API（wash.*）
 
@@ -40,46 +55,41 @@
 | `wash.write_file(path, content)` | 写入文件 |
 | `wash.spawn_exe(exe, args)` | 调用外部程序 |
 
-## 编译与运行
+## 编译
 
-### 环境要求
-- MinGW-w64 GCC（项目已内置在 `mingw/` 目录）
-- Windows 10/11
+需要 MinGW-w64 GCC。在项目根目录执行：
 
-### 编译
 ```cmd
-build.bat
-```
-生成 `wash.exe`。
+set PATH=你的MinGW\bin;%PATH%
 
-### 运行
-```cmd
-wash.bat
+:: 编译 Lua 静态库
+for %f in (lapi lcode ldebug ldo ldump lfunc lgc llex lmem loadlib lobject lopcodes lparser lstate lstring ltable ltm lundump lvm lzio lauxlib lbaselib ldblib liolib lmathlib loslib ltablib lstrlib linit) do gcc -O2 -c lua-src\%f.c -o lua-src\%f.o -Ilua-src
+ar rcs lua-src\liblua.a lua-src\*.o
+
+:: 编译 Wash
+gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\shell.c -o src\shell.o -Ilua-src
+gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\builtin.c -o src\builtin.o -Ilua-src
+gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\lua_kernel.c -o src\lua_kernel.o -Ilua-src
+gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\main.c -o src\main.o -Ilua-src
+gcc -O2 -o wash.exe src\main.o src\shell.o src\builtin.o src\lua_kernel.o lua-src\liblua.a -lm
 ```
-或直接运行 `wash.exe`。
+
+生成 `wash.exe`，与 `wash-modules/` 放在同一目录即可运行。
 
 ## 目录结构
 
 ```
 wash-project/
-├── wash.exe              # 编译后的可执行文件
-├── wash.bat              # 一键启动脚本
-├── build.bat             # 编译脚本
-├── README.md
-├── src/                  # C 内核源码
-│   ├── main.c            # 入口
-│   ├── shell.h/.c        # 会话状态、命令解析、主循环
-│   ├── builtin.h/.c      # 内置命令
-│   └── lua_kernel.h/.c   # Lua 虚拟机、API 暴露、插件加载
-├── lua-src/              # Lua 5.1.5 源码（静态链接）
-├── mingw/                # 内置 MinGW-w64 编译器
-└── wash-modules/         # 插件目录
-    ├── ls.wash
-    ├── mkdir.wash
-    ├── cat.wash
-    ├── rm.wash
-    ├── echo.wash
-    └── whoami.wash
+├── src/                  C 内核源码
+│   ├── main.c            入口、启动参数解析
+│   ├── shell.h/.c        会话状态、命令解析、主循环
+│   ├── builtin.h/.c      内置命令
+│   └── lua_kernel.h/.c   Lua 虚拟机、API 暴露、插件加载、模式切换
+├── lua-src/              Lua 5.1.5 源码（静态链接）
+├── wash-modules/         插件目录（.wash 纯文本 Lua 脚本）
+├── docs/                 文档（插件清单、API清单）
+├── LICENSE               MIT 协议
+└── README.md
 ```
 
 ## 编写自定义插件
@@ -104,11 +114,12 @@ end
 - [x] C 原生内核，静态链接 Lua 5.1（单 exe，无外部依赖）
 - [x] 会话状态管理（CWD）
 - [x] 命令行分词解析（支持双引号）
-- [x] 内置命令（exit/cd/pwd/clear/help/modules）
-- [x] Lua 插件动态加载
+- [x] 内置命令（exit/cd/pwd/clear/help/modules/unrestrict/restrict）
+- [x] Lua 插件动态加载，即插即用
 - [x] wash.* C API 暴露给 Lua
 - [x] 高危接口屏蔽（os.execute/io/loadfile 等）
-- [x] 插件即插即用，无需重启
+- [x] 受限/不受限双模式运行时切换
+- [x] 完整 UTF-8 中文支持（输入、输出、文件名）
 
 ## 待开发
 
@@ -122,4 +133,8 @@ end
 
 ## 免责声明
 
-本项目允许加载第三方插件；插件拥有访问本地文件、执行程序的权限。请只加载信任来源的插件，加载未知插件造成的数据损坏由使用者自行承担。
+本项目允许加载第三方插件；不受限模式下插件拥有访问本地文件、执行程序的完整权限。请只加载信任来源的插件，加载未知插件造成的任何损失由使用者自行承担。
+
+## 协议
+
+MIT License
