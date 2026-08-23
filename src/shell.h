@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define WASH_VERSION "0.2.0-c"
+#define WASH_VERSION "0.2.1"
 #define MAX_INPUT 4096
 #define MAX_ARGS 256
 #define MAX_PATH_LEN 32768

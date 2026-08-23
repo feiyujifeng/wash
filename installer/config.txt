@@ -1,0 +1,5 @@
+;!@Install@!UTF-8!
+Title="WASH (Wash Aren't Shell) v0.2.1"
+BeginPrompt="是否解压 WASH v0.2.1 便携版？"
+Directory=".\WASH"
+;!@InstallEnd@!

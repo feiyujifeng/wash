@@ -19,7 +19,7 @@
 
 ## 快速开始
 
-从 [Releases](https://github.com/feiyujifeng/wash/releases) 下载 `WASH-Portable.exe`，双击解压后运行 `wash.bat`。
+从 [Releases](https://github.com/飞宇之峰/wash/releases) 下载 `WASH-Portable.exe`，双击解压后运行 `wash.bat`。
 
 或自行编译（见下方）。
 
@@ -57,21 +57,10 @@
 
 ## 编译
 
-需要 MinGW-w64 GCC。在项目根目录执行：
+需要 MinGW-w64 GCC。确保 `gcc` 在 PATH 中，然后运行：
 
 ```cmd
-set PATH=你的MinGW\bin;%PATH%
-
-:: 编译 Lua 静态库
-for %f in (lapi lcode ldebug ldo ldump lfunc lgc llex lmem loadlib lobject lopcodes lparser lstate lstring ltable ltm lundump lvm lzio lauxlib lbaselib ldblib liolib lmathlib loslib ltablib lstrlib linit) do gcc -O2 -c lua-src\%f.c -o lua-src\%f.o -Ilua-src
-ar rcs lua-src\liblua.a lua-src\*.o
-
-:: 编译 Wash
-gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\shell.c -o src\shell.o -Ilua-src
-gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\builtin.c -o src\builtin.o -Ilua-src
-gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\lua_kernel.c -o src\lua_kernel.o -Ilua-src
-gcc -O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8 -c src\main.c -o src\main.o -Ilua-src
-gcc -O2 -o wash.exe src\main.o src\shell.o src\builtin.o src\lua_kernel.o lua-src\liblua.a -lm
+build.bat
 ```
 
 生成 `wash.exe`，与 `wash-modules/` 放在同一目录即可运行。
@@ -88,6 +77,8 @@ wash-project/
 ├── lua-src/              Lua 5.1.5 源码（静态链接）
 ├── wash-modules/         插件目录（.wash 纯文本 Lua 脚本）
 ├── docs/                 文档（插件清单、API清单）
+├── build.bat             一键编译脚本
+├── THIRD_PARTY_NOTICES.md  第三方软件声明
 ├── LICENSE               MIT 协议
 └── README.md
 ```
@@ -137,4 +128,6 @@ end
 
 ## 协议
 
-MIT License
+本项目基于 **MIT License** 开源。
+
+包含第三方组件 Lua 5.1.5（MIT License），详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
