@@ -1,0 +1,31 @@
+-- rmdir.wash - 删除目录
+-- 用法: rmdir [-r] <dirname>
+local args = ...
+
+local recursive = false
+local target = nil
+
+for i = 1, #args do
+    if args[i] == "-r" or args[i] == "-R" or args[i] == "--recursive" then
+        recursive = true
+    else
+        target = args[i]
+    end
+end
+
+if not target then
+    wash.print("用法: rmdir [-r] <目录名>")
+    wash.print("  -r  递归删除目录及内容")
+    return
+end
+
+local ok = wash.remove_dir(target, recursive)
+if ok then
+    wash.print("已删除: " .. target)
+else
+    if not recursive and wash.is_dir(target) then
+        wash.print("rmdir: 目录非空，使用 -r 递归删除: " .. target)
+    else
+        wash.print("rmdir: 删除失败: " .. target)
+    end
+end

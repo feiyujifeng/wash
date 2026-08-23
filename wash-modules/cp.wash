@@ -1,0 +1,24 @@
+-- cp.wash - 复制文件
+-- 用法: cp <src> <dst>
+local args = ...
+
+if #args < 2 then
+    wash.print("用法: cp <源文件> <目标文件>")
+    return
+end
+
+local src = args[1]
+local dst = args[2]
+
+if wash.is_dir(dst) then
+    -- 目标是目录，复制到目录下
+    local name = src:match("[^\\/]+$") or src
+    dst = dst .. "\\" .. name
+end
+
+local ok = wash.copy_file(src, dst)
+if ok then
+    wash.print("已复制: " .. src .. " -> " .. dst)
+else
+    wash.print("cp: 复制失败: " .. src)
+end

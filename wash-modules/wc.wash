@@ -1,0 +1,49 @@
+-- wc.wash - 统计行数/字数/字符数
+-- 用法: wc [option] <file>
+local args = ...
+
+local show_lines = true
+local show_words = true
+local show_chars = true
+local filename = nil
+
+for i = 1, #args do
+    if args[i] == "-l" then
+        show_lines, show_words, show_chars = true, false, false
+    elseif args[i] == "-w" then
+        show_lines, show_words, show_chars = false, true, false
+    elseif args[i] == "-c" then
+        show_lines, show_words, show_chars = false, false, true
+    else
+        filename = args[i]
+    end
+end
+
+if not filename then
+    wash.print("用法: wc [-l|-w|-c] <文件名>")
+    return
+end
+
+local content = wash.read_file(filename)
+if not content then
+    wash.print("wc: 无法读取文件: " .. filename)
+    return
+end
+
+local lines = 0
+local words = 0
+for _ in content:gmatch("[^\r\n]+") do
+    lines = lines + 1
+end
+for _ in content:gmatch("%S+") do
+    words = words + 1
+end
+local chars = #content
+
+local out = {}
+if show_lines then out[#out+1] = "行:" .. lines end
+if show_words then out[#out+1] = "词:" .. words end
+if show_chars then out[#out+1] = "字符:" .. chars end
+out[#out+1] = filename
+
+wash.print(table.concat(out, "  "))

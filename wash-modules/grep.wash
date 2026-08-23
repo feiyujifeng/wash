@@ -1,0 +1,31 @@
+-- grep.wash - 在文件中搜索文本
+-- 用法: grep <pattern> <file>
+local args = ...
+
+if #args < 2 then
+    wash.print("用法: grep <搜索内容> <文件名>")
+    return
+end
+
+local pattern = args[1]
+local filename = args[2]
+
+local content = wash.read_file(filename)
+if not content then
+    wash.print("grep: 无法读取文件: " .. filename)
+    return
+end
+
+local count = 0
+local lineno = 0
+for line in content:gmatch("[^\r\n]+") do
+    lineno = lineno + 1
+    if line:find(pattern, 1, true) then
+        wash.print(lineno .. ": " .. line)
+        count = count + 1
+    end
+end
+
+if count == 0 then
+    wash.print("(无匹配)")
+end

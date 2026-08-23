@@ -1,0 +1,38 @@
+-- find.wash - 递归查找文件
+-- 用法: find [path] [name_pattern]
+local args = ...
+
+local path = "."
+local pattern = nil
+
+for i = 1, #args do
+    if not pattern and args[i]:match("%.") or args[i]:match("%*") then
+        pattern = args[i]
+    elseif path == "." then
+        path = args[i]
+    else
+        pattern = args[i]
+    end
+end
+
+if path == "." then path = wash.get_cwd() end
+
+local function find_dir(dir, prefix)
+    local entries = wash.read_dir(dir)
+    for _, name in ipairs(entries) do
+        local full = dir .. "\\" .. name
+        local display = prefix ~= "" and (prefix .. "\\" .. name) or name
+        if wash.is_dir(full) then
+            if not pattern or name:match(pattern:gsub("%.", "%%."):gsub("%*", ".*")) then
+                wash.print(display .. "\\")
+            end
+            find_dir(full, display)
+        else
+            if not pattern or name:match(pattern:gsub("%.", "%%."):gsub("%*", ".*")) then
+                wash.print(display)
+            end
+        end
+    end
+end
+
+find_dir(path, "")

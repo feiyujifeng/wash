@@ -1,0 +1,34 @@
+-- head.wash - 显示文件前 N 行
+-- 用法: head [-n N] <file>
+local args = ...
+
+local n = 10
+local filename = nil
+
+for i = 1, #args do
+    if args[i] == "-n" and args[i+1] then
+        n = tonumber(args[i+1]) or 10
+    elseif args[i]:match("^-%d+$") then
+        n = tonumber(args[i]:sub(2))
+    else
+        if not filename then filename = args[i] end
+    end
+end
+
+if not filename then
+    wash.print("用法: head [-n 行数] <文件名>")
+    return
+end
+
+local content = wash.read_file(filename)
+if not content then
+    wash.print("head: 无法读取文件: " .. filename)
+    return
+end
+
+local count = 0
+for line in content:gmatch("[^\r\n]+") do
+    wash.print(line)
+    count = count + 1
+    if count >= n then break end
+end

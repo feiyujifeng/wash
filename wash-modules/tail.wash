@@ -1,0 +1,37 @@
+-- tail.wash - 显示文件后 N 行
+-- 用法: tail [-n N] <file>
+local args = ...
+
+local n = 10
+local filename = nil
+
+for i = 1, #args do
+    if args[i] == "-n" and args[i+1] then
+        n = tonumber(args[i+1]) or 10
+    elseif args[i]:match("^-%d+$") then
+        n = tonumber(args[i]:sub(2))
+    else
+        if not filename then filename = args[i] end
+    end
+end
+
+if not filename then
+    wash.print("用法: tail [-n 行数] <文件名>")
+    return
+end
+
+local content = wash.read_file(filename)
+if not content then
+    wash.print("tail: 无法读取文件: " .. filename)
+    return
+end
+
+local lines = {}
+for line in content:gmatch("[^\r\n]+") do
+    lines[#lines+1] = line
+end
+
+local start = math.max(1, #lines - n + 1)
+for i = start, #lines do
+    wash.print(lines[i])
+end

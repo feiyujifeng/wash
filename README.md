@@ -37,9 +37,12 @@
 | `unrestrict` | 切换为不受限模式（默认） |
 | `restrict` | 切回受限模式 |
 
-## 内置插件（8个）
+## 内置插件（18个）
 
-`ls` `cat` `rm` `mkdir` `echo` `whoami` `tree` `demo`
+文件操作：`ls` `cat` `rm` `mkdir` `rmdir` `cp` `mv` `touch` `tree`
+文本处理：`grep` `wc` `head` `tail` `echo`
+系统信息：`whoami` `date` `find`
+演示：`demo`
 
 输入 `modules` 查看完整列表。
 

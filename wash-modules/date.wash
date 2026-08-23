@@ -1,0 +1,6 @@
+-- date.wash - 显示当前日期时间
+-- 用法: date [format]
+local args = ...
+
+local fmt = args[1] or "%Y-%m-%d %H:%M:%S %A"
+wash.print(os.date(fmt))
