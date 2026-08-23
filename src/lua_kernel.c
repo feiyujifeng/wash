@@ -6,12 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <conio.h>
 #include <windows.h>
 #include <direct.h>
 
 static lua_State *L = NULL;
 static wash_state_t *g_state = NULL;
-static int g_unrestricted = 0;  /* 0=受限模式, 1=不受限模式 */
+static int g_unrestricted = 1;  /* 默认不受限，全部 Lua 接口开放 */
 
 /* UTF-8 转宽字符 */
 static int utf8_to_wide(const char *utf8, wchar_t *wide, int wide_len) {
@@ -186,6 +187,134 @@ static int api_spawn_exe(lua_State *L) {
 }
 
 /* ============================================================
+ * 新增 API（v0.2.2）
+ * ============================================================ */
+
+/* wash.copy_file(src, dst) -> boolean */
+static int api_copy_file(lua_State *L) {
+    const char *src = luaL_checkstring(L, 1);
+    const char *dst = luaL_checkstring(L, 2);
+    wchar_t wsrc[MAX_PATH_LEN], wdst[MAX_PATH_LEN];
+    resolve_path_wide(src, wsrc, MAX_PATH_LEN);
+    resolve_path_wide(dst, wdst, MAX_PATH_LEN);
+    BOOL ok = CopyFileW(wsrc, wdst, FALSE);
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+/* wash.move_file(src, dst) -> boolean */
+static int api_move_file(lua_State *L) {
+    const char *src = luaL_checkstring(L, 1);
+    const char *dst = luaL_checkstring(L, 2);
+    wchar_t wsrc[MAX_PATH_LEN], wdst[MAX_PATH_LEN];
+    resolve_path_wide(src, wsrc, MAX_PATH_LEN);
+    resolve_path_wide(dst, wdst, MAX_PATH_LEN);
+    BOOL ok = MoveFileW(wsrc, wdst);
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+/* 递归删除目录（内部辅助） */
+static BOOL remove_dir_recursive(const wchar_t *path) {
+    wchar_t pattern[MAX_PATH_LEN];
+    wcscpy(pattern, path);
+    wcscat(pattern, L"\\*");
+
+    WIN32_FIND_DATAW fd;
+    HANDLE hFind = FindFirstFileW(pattern, &fd);
+    if (hFind == INVALID_HANDLE_VALUE) return FALSE;
+
+    do {
+        if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0)
+            continue;
+        wchar_t full[MAX_PATH_LEN];
+        wcscpy(full, path);
+        wcscat(full, L"\\");
+        wcscat(full, fd.cFileName);
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            remove_dir_recursive(full);
+        } else {
+            DeleteFileW(full);
+        }
+    } while (FindNextFileW(hFind, &fd));
+    FindClose(hFind);
+
+    return RemoveDirectoryW(path);
+}
+
+/* wash.remove_dir(path, recursive?) -> boolean */
+static int api_remove_dir(lua_State *L) {
+    const char *path = luaL_checkstring(L, 1);
+    int recursive = lua_toboolean(L, 2);
+    wchar_t wpath[MAX_PATH_LEN];
+    resolve_path_wide(path, wpath, MAX_PATH_LEN);
+    BOOL ok;
+    if (recursive) {
+        ok = remove_dir_recursive(wpath);
+    } else {
+        ok = RemoveDirectoryW(wpath);
+    }
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+/* wash.file_exists(path) -> boolean */
+static int api_file_exists(lua_State *L) {
+    const char *path = luaL_checkstring(L, 1);
+    wchar_t wpath[MAX_PATH_LEN];
+    resolve_path_wide(path, wpath, MAX_PATH_LEN);
+    DWORD attr = GetFileAttributesW(wpath);
+    lua_pushboolean(L, attr != INVALID_FILE_ATTRIBUTES);
+    return 1;
+}
+
+/* wash.is_dir(path) -> boolean */
+static int api_is_dir(lua_State *L) {
+    const char *path = luaL_checkstring(L, 1);
+    wchar_t wpath[MAX_PATH_LEN];
+    resolve_path_wide(path, wpath, MAX_PATH_LEN);
+    DWORD attr = GetFileAttributesW(wpath);
+    lua_pushboolean(L, attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY));
+    return 1;
+}
+
+/* wash.is_file(path) -> boolean */
+static int api_is_file(lua_State *L) {
+    const char *path = luaL_checkstring(L, 1);
+    wchar_t wpath[MAX_PATH_LEN];
+    resolve_path_wide(path, wpath, MAX_PATH_LEN);
+    DWORD attr = GetFileAttributesW(wpath);
+    lua_pushboolean(L, attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY));
+    return 1;
+}
+
+/* wash.get_key() -> number (ASCII code), 等待按键不回显 */
+static int api_get_key(lua_State *L) {
+    int ch = _getch();
+    /* 处理功能键（0xE0 或 0x00 前缀），读第二个字节 */
+    if (ch == 0xE0 || ch == 0x00) {
+        int ch2 = _getch();
+        lua_pushnumber(L, 0x100 + ch2);  /* 功能键用 0x100+ 编码 */
+    } else {
+        lua_pushnumber(L, ch);
+    }
+    return 1;
+}
+
+/* wash.sleep(ms) */
+static int api_sleep(lua_State *L) {
+    int ms = (int)luaL_checknumber(L, 1);
+    Sleep(ms);
+    return 0;
+}
+
+/* wash.clear() - 清屏 */
+static int api_clear(lua_State *L) {
+    system("cls");
+    return 0;
+}
+
+/* ============================================================
  * 注册 wash.* API 到 Lua
  * ============================================================ */
 static void register_wash_api(lua_State *L) {
@@ -214,6 +343,33 @@ static void register_wash_api(lua_State *L) {
 
     lua_pushcfunction(L, api_spawn_exe);
     lua_setfield(L, -2, "spawn_exe");
+
+    lua_pushcfunction(L, api_copy_file);
+    lua_setfield(L, -2, "copy_file");
+
+    lua_pushcfunction(L, api_move_file);
+    lua_setfield(L, -2, "move_file");
+
+    lua_pushcfunction(L, api_remove_dir);
+    lua_setfield(L, -2, "remove_dir");
+
+    lua_pushcfunction(L, api_file_exists);
+    lua_setfield(L, -2, "file_exists");
+
+    lua_pushcfunction(L, api_is_dir);
+    lua_setfield(L, -2, "is_dir");
+
+    lua_pushcfunction(L, api_is_file);
+    lua_setfield(L, -2, "is_file");
+
+    lua_pushcfunction(L, api_get_key);
+    lua_setfield(L, -2, "get_key");
+
+    lua_pushcfunction(L, api_sleep);
+    lua_setfield(L, -2, "sleep");
+
+    lua_pushcfunction(L, api_clear);
+    lua_setfield(L, -2, "clear");
 
     lua_setglobal(L, "wash");
 }
@@ -308,14 +464,11 @@ int lua_kernel_init(wash_state_t *state) {
     L = luaL_newstate();
     if (!L) return -1;
 
-    /* 打开基础库（table, string, math, os(部分), coroutine, package, debug） */
+    /* 打开全部标准库（默认不受限，插件可直接使用 os/io/loadfile 等） */
     luaL_openlibs(L);
 
-    /* 注册 wash.* API */
+    /* 注册 wash.* API（与 Lua 原生接口并存） */
     register_wash_api(L);
-
-    /* 屏蔽高危接口 */
-    lockdown_env(L);
 
     return 0;
 }

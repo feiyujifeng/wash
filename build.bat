@@ -10,7 +10,7 @@ REM set "PATH=D:\mingw64\bin;%PATH%"
 
 set "CFLAGS=-O2 -Wall -finput-charset=UTF-8 -fexec-charset=UTF-8"
 
-echo === WASH Build Script (v0.2.1) ===
+echo === WASH Build Script (v0.2.2) ===
 echo.
 
 where gcc >nul 2>&1

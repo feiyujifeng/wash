@@ -14,8 +14,9 @@
 
 - **C 内核** (`src/`)：维护会话状态（CWD）、命令解析、Lua 虚拟机管理、内置命令
 - **Lua 插件** (`wash-modules/*.wash`)：纯文本 Lua 脚本，放入目录即可加载，无需编译、无需重启
-- **API 收口**：受限模式下插件只能调用 `wash.*` 系列标准化 C 接口，原生 `os.execute`、`io` 库等被屏蔽
-- **双模式**：默认受限模式，输入 `unrestrict` 切换不受限（恢复全部 Lua 原生接口），`restrict` 切回
+- **默认不受限**：全部 Lua 原生接口（`os.execute`、`io.*`、`loadfile` 等）直接可用
+- **wash.* API**：17 个标准化 C 接口，与 Lua 原生接口并存，插件可自由选择
+- **可选受限模式**：`-r` 启动或 `restrict` 命令可屏蔽原生接口，仅允许 `wash.*` API
 
 ## 快速开始
 
@@ -33,7 +34,7 @@
 | `clear` | 清屏 |
 | `help` | 显示帮助 |
 | `modules` | 列出可用插件 |
-| `unrestrict` | 切换为不受限模式 |
+| `unrestrict` | 切换为不受限模式（默认） |
 | `restrict` | 切回受限模式 |
 
 ## 内置插件（8个）
@@ -42,18 +43,17 @@
 
 输入 `modules` 查看完整列表。
 
-## 插件 API（wash.*）
+## wash.* API（17个）
 
-| API | 说明 |
-|-----|------|
-| `wash.get_cwd()` | 获取当前工作目录 |
-| `wash.print(text)` | 终端输出 |
-| `wash.read_dir(path)` | 列出目录内容（返回 table） |
-| `wash.make_dir(path)` | 创建文件夹 |
-| `wash.remove_file(path)` | 删除文件 |
-| `wash.read_file(path)` | 读取文件 |
-| `wash.write_file(path, content)` | 写入文件 |
-| `wash.spawn_exe(exe, args)` | 调用外部程序 |
+| 分类 | API |
+|------|-----|
+| 会话与终端 | `get_cwd` `print` `clear` `sleep` `get_key` |
+| 文件与目录 | `read_dir` `make_dir` `remove_dir` `remove_file` `copy_file` `move_file` `read_file` `write_file` `file_exists` `is_dir` `is_file` |
+| 进程 | `spawn_exe` |
+
+其中 6 个与 Lua 原生接口重复（`print`/`read_file`/`write_file`/`remove_file`/`move_file`/`spawn_exe`），保留作为标准化接口。
+
+详见 [docs/API清单.md](docs/API清单.md)。
 
 ## 编译
 
@@ -77,6 +77,7 @@ wash-project/
 ├── lua-src/              Lua 5.1.5 源码（静态链接）
 ├── wash-modules/         插件目录（.wash 纯文本 Lua 脚本）
 ├── docs/                 文档（插件清单、API清单）
+├── installer/            安装包制作配置
 ├── build.bat             一键编译脚本
 ├── THIRD_PARTY_NOTICES.md  第三方软件声明
 ├── LICENSE               MIT 协议
@@ -93,9 +94,15 @@ local args = ...  -- 命令行参数表（array）
 
 wash.print("Hello from yourcmd!")
 wash.print("Args count: " .. #args)
-for i, v in ipairs(args) do
-    wash.print("  [" .. i .. "] " .. v)
-end
+
+-- 不受限模式下可直接使用 Lua 原生接口
+os.execute("echo hello")
+local f = io.open("test.txt", "w")
+f:write("world\n")
+f:close()
+
+-- 也可以使用 wash.* 标准化 API
+wash.write_file("test2.txt", "via wash API\n")
 ```
 
 保存后直接在 Wash 中输入 `yourcmd` 即可运行，无需重启、无需编译。
@@ -107,10 +114,11 @@ end
 - [x] 命令行分词解析（支持双引号）
 - [x] 内置命令（exit/cd/pwd/clear/help/modules/unrestrict/restrict）
 - [x] Lua 插件动态加载，即插即用
-- [x] wash.* C API 暴露给 Lua
-- [x] 高危接口屏蔽（os.execute/io/loadfile 等）
-- [x] 受限/不受限双模式运行时切换
+- [x] wash.* C API 暴露给 Lua（17个）
+- [x] 默认不受限，全部 Lua 原生接口可用
+- [x] 可选受限模式（屏蔽 os.execute/io/loadfile 等）
 - [x] 完整 UTF-8 中文支持（输入、输出、文件名）
+- [x] 实时按键读取、休眠、清屏
 
 ## 待开发
 
@@ -124,7 +132,7 @@ end
 
 ## 免责声明
 
-本项目允许加载第三方插件；不受限模式下插件拥有访问本地文件、执行程序的完整权限。请只加载信任来源的插件，加载未知插件造成的任何损失由使用者自行承担。
+本项目默认不受限模式，插件拥有与普通 Lua 脚本完全相同的权限，可执行任意系统操作。受限模式仅为架构分层约束，非安全沙箱。请只加载信任来源的插件，造成的任何损失由使用者自行承担。
 
 ## 协议
 
